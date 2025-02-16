@@ -17,50 +17,49 @@ export default class SchemaModel {
     this.getRailsSchema();
   }
 
-  public getRailsSchema(): void {
-    const uri = getSchemaUri();
+  public async getRailsSchema(): Promise<void> {
+    const uri = await getSchemaUri();
     if (uri === undefined) {
       return;
     }
 
-    vscode.workspace.openTextDocument(uri).then(
-      (document) => {
-        const schemaText = document.getText();
+    try {
+      const document = await vscode.workspace.openTextDocument(uri);
+      const schemaText = document.getText();
 
-        const tablesRegex = /create_table([\s\S]*?)(  end)/g;
-        const tableNameRegex = /(?<=create_table ")([\s\S]*?)(?=("))/g;
-        const tableDefinitionRegex = /(?=create_table )([\s\S]*?)(do)/g;
-        const commentsInfoRegex = /(?=comment: )([\s\S]*?)(?=(" do)|(",))/;
+      const tablesRegex = /create_table([\s\S]*?)(  end)/g;
+      const tableNameRegex = /(?<=create_table ")([\s\S]*?)(?=("))/g;
+      const tableDefinitionRegex = /(?=create_table )([\s\S]*?)(do)/g;
+      const commentsInfoRegex = /(?=comment: )([\s\S]*?)(?=(" do)|(",))/;
 
-        const tablesRegexMatch = schemaText.match(tablesRegex);
-        if (tablesRegexMatch === null || tablesRegexMatch.length === 0) {
-          return;
-        }
+      const tablesRegexMatch = schemaText.match(tablesRegex);
+      if (tablesRegexMatch === null || tablesRegexMatch.length === 0) {
+        return;
+      }
 
-        const schemaNodes = tablesRegexMatch.map((tableText) => {
-          const tableLableMatch = tableText.match(tableNameRegex);
-          const tableDefinitionMatch = tableText.match(tableDefinitionRegex);
-          const commentsInfo = tableDefinitionMatch ? tableDefinitionMatch[0].match(commentsInfoRegex) : "";
-          const children = this.getTableFields(tableText);
-          const label = tableLableMatch ? tableLableMatch[0] : "";
-          const tooltip = commentsInfo ? `${commentsInfo[0]}"` : "";
-          return {
-            label: label,
-            tooltip: tooltip,
-            isTable: true,
-            children: children,
-            parent: undefined,
-          };
-        });
+      const schemaNodes = tablesRegexMatch.map((tableText) => {
+        const tableLableMatch = tableText.match(tableNameRegex);
+        const tableDefinitionMatch = tableText.match(tableDefinitionRegex);
+        const commentsInfo = tableDefinitionMatch ? tableDefinitionMatch[0].match(commentsInfoRegex) : "";
+        const children = this.getTableFields(tableText);
+        const label = tableLableMatch ? tableLableMatch[0] : "";
+        const tooltip = commentsInfo ? `${commentsInfo[0]}"` : "";
+        return {
+          label: label,
+          tooltip: tooltip,
+          isTable: true,
+          children: children,
+          parent: undefined,
+        };
+      });
 
-        this.data = schemaNodes;
-        this.callback();
-      },
-      (_err) =>
-        vscode.window.showInformationMessage(
-          "Cannot find db/schema.rb file in the workspace"
-        )
-    );
+      this.data = schemaNodes;
+      this.callback();
+    } catch (err) {
+      vscode.window.showInformationMessage(
+        "Cannot find db/schema.rb file in the workspace"
+      );
+    }
   }
 
   private getTableFields(tableText: string): SchemaNode[] {

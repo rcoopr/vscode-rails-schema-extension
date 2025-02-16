@@ -1,14 +1,25 @@
 import * as vscode from "vscode";
 import { URI } from "vscode-uri";
 
-export function getSchemaUri(): URI | undefined {
+export async function getSchemaUri(): Promise<URI | undefined> {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (workspaceFolders === undefined || workspaceFolders.length === 0) {
     return;
   }
 
-  const workspacePath = workspaceFolders[0].uri.path;
-  return URI.file(workspacePath + "/db/schema.rb");
+  for (const folder of workspaceFolders) {
+    const schemaUri = vscode.Uri.joinPath(folder.uri, 'db', 'schema.rb');
+    
+    try {
+        // Check if file exists
+        await vscode.workspace.fs.stat(schemaUri);
+        return schemaUri; // Return the first valid schema found
+    } catch (error) {
+        continue; // File doesn't exist in this folder, try next one
+    }
+  }
+
+  return;
 }
 
 export function getCurrentTableName(): string | null {

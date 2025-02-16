@@ -38,17 +38,14 @@ export class SchemaExplorer {
     context.subscriptions.push(
       vscode.commands.registerCommand(
         "rails-schema.openInSchema",
-        (node: SchemaNode) => {
-          const uri = getSchemaUri();
+        async (node: SchemaNode) => {
+          const uri = await getSchemaUri();
           if (uri === undefined) {
             return;
           }
 
-          vscode.workspace
-            .openTextDocument(uri)
-            .then((document: vscode.TextDocument) => {
-              this.openInSchema(document, node);
-            });
+          const document: vscode.TextDocument = await vscode.workspace.openTextDocument(uri);
+          this.openInSchema(document, node);
         }
       )
     );
